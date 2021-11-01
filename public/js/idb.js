@@ -2,28 +2,67 @@ let db;
 
 const request = indexedDB.open('budget', 1);
 
-request.onupgradeneeded = function (event){
+request.onupgradeneeded = function (event) {
     const db = event.target.result;
 
-    db.createObjectStore('expenses', {autoIncrement: true})
+    db.createObjectStore('new_expense', { autoIncrement: true })
 };
 
-request.onsuccess = function(event){
+request.onsuccess = function (event) {
     db = event.target.result;
 
-    if(navigator.online){
-        uploadExpenses();
+    if (navigator.online) {
+        checkDatabase();
     }
 };
 
-request.onerror = function(event){
+request.onerror = function (event) {
     console.log(event.target.errorCode)
 };
 
-function saveRecord(transaction){
+function saveRecord(record) {
     const transaction = db.transaction(['new_expense'], 'readwrite');
 
     const expenseObjectStore = transaction.objectStore('new_expense');
 
-    expenseObjectStore.add(transaction);
+    expenseObjectStore.add(record);
 }
+
+function checkDatabase() {
+    const transaction = db.transaction(['new_expense'], 'readwrite');
+
+    const expenseObjectStore = transaction.objectStore('new_expense');
+
+    const getAll = expenseObjectStore.getAll();
+    getAll.onsuccess = function () {
+        if (getAll.result.length > 0) {
+            console.log(JSON.stringify(getAll.result))
+            fetch('/api/transaction', {
+                method: 'POST',
+                body: JSON.stringify(getAll.result),
+                headers: {
+                    Accept: 'application/json, text/plain, */*',
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => {
+                    console.log(response)
+                    return response.json()
+                })
+                .then((serverResponse) => {
+                    if(serverResponse.message){
+                        throw new Error(serverResponse);
+                    }
+                    const transaction = db.transaction(['new_expense'], 'readwrite');
+
+                    const expenseObjectStore = transaction.objectStore('new_expense');
+
+                    expenseObjectStore.clear();
+
+                    alert('All saved transactions have been submitted!')
+                })
+                .catch(err => console.log(err));
+        }
+    }
+};
+window.addEventListener('online', checkDatabase)
