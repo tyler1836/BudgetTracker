@@ -6,3 +6,4 @@
 - After coming back online all of your transactions will be sent through so you don't have any discrepensies 
 - Indexed database will cache all necessary code so that the app will still function even while you are offline
 #### Try it here [heroku app](https://budget-----tracker.herokuapp.com/)
+![caption](/budgettracker.gif)
